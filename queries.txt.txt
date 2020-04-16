@@ -1,0 +1,90 @@
+/*Query 1- query used for first insight*/ We want to understand more about the movies that families are watching. The following categories are considered family movies: Animation, Children, Classics, Comedy, Family and Music.
+
+Create a query that lists each movie, the film category it is classified in, and the number of times it has been rented out.
+
+SELECT  f.title AS film_title,
+        c.name AS category_name,
+        COUNT(r.rental_id) AS rental_count
+FROM category AS c
+JOIN film_category AS fc
+ON c.category_id=fc.category_id
+JOIN film AS f
+ON f.film_id=fc.film_id
+JOIN inventory AS i
+ON f.film_id=i.film_id
+JOIN rental AS r
+ON i.inventory_id=r.inventory_id
+WHERE c.name IN ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')
+GROUP BY 1,2
+ORDER BY 2,1;
+
+/*Query 2- query used for second insight*/ Compare each family movie film with the average rental count for each of the category.
+
+SELECT  film_title,
+        category_name,
+        rental_count,
+        AVG(rental_count) OVER (PARTITION BY category_name) AS category_avg
+FROM (SELECT  f.title AS film_title,
+        c.name AS category_name,
+        COUNT(r.rental_id) AS rental_count
+      FROM category AS c
+      JOIN film_category AS fc
+      ON c.category_id=fc.category_id
+      JOIN film AS f
+      ON f.film_id=fc.film_id
+      JOIN inventory AS i
+      ON f.film_id=i.film_id
+      JOIN rental AS r
+      ON i.inventory_id=r.inventory_id
+      WHERE c.name IN ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')
+      GROUP BY 1,2
+      ORDER BY 2,1) t1;
+
+/*Query 3- query used for third insight*/  Write a query to display each of the family movie film, the rental count, and the level of the rental count: 'Bad' if the rental count is less than 10, 'Acceptable' if the rental count is between 10 and 20, 'Good' if the rental count is between 20 and 30, and 'Great' if the rental count is 30 and more.
+
+WITH t1 AS (SELECT  f.title AS film_title,
+        c.name AS category_name,
+        COUNT(r.rental_id) AS rental_count
+FROM category AS c
+JOIN film_category AS fc
+ON c.category_id=fc.category_id
+JOIN film AS f
+ON f.film_id=fc.film_id
+JOIN inventory AS i
+ON f.film_id=i.film_id
+JOIN rental AS r
+ON i.inventory_id=r.inventory_id
+WHERE c.name IN ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')
+GROUP BY 1,2
+ORDER BY 2,1)
+
+SELECT  film_title,
+        rental_count,
+        CASE
+          WHEN rental_count < 10 THEN 'Bad'
+          WHEN rental_count >= 10 AND rental_count < 20 THEN 'Acceptable'
+          WHEN rental_count >=20 AND rental_count < 30 THEN 'Good'
+          ELSE 'Great'
+        END AS rental_lvl
+FROM t1;
+
+/*Query 4- query used for fourth insight*/  Provide the upper quartiles with the movie titles (top 10%) of each category.
+SELECT  film_title,
+        category_name,
+        rental_count,
+        NTILE(10) OVER (PARTITION BY category_name ORDER BY rental_count DESC) AS top_ten
+FROM (SELECT  f.title AS film_title,
+        c.name AS category_name,
+        COUNT(r.rental_id) AS rental_count
+          FROM category AS c
+          JOIN film_category AS fc
+          ON c.category_id=fc.category_id
+          JOIN film AS f
+          ON f.film_id=fc.film_id
+          JOIN inventory AS i
+          ON f.film_id=i.film_id
+          JOIN rental AS r
+          ON i.inventory_id=r.inventory_id
+          WHERE c.name IN ('Animation', 'Children', 'Classics', 'Comedy', 'Family', 'Music')
+          GROUP BY 1,2
+          ORDER BY 2,1) t1;
